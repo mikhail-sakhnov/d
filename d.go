@@ -1,8 +1,8 @@
-// Copyright 2016 Ryan Boehning. All rights reserved.
+// Copyright 2016 Ryan Boehning, Mikhail Sakhnov. All rights reserved.
 // Use of this source code is governed by the MIT
 // license that can be found in the LICENSE file.
 
-package q
+package d
 
 import (
 	"bytes"
@@ -19,27 +19,58 @@ type color string
 
 const (
 	// ANSI color escape codes
-	bold     color = "\033[1m"
-	yellow   color = "\033[33m"
-	cyan     color = "\033[36m"
-	endColor color = "\033[0m" // "reset everything"
-
-	maxLineWidth = 80
-	bufSize      = 16384
+	bold         color = "\033[1m"
+	yellow       color = "\033[33m"
+	cyan         color = "\033[36m"
+	endColor     color = "\033[0m" // "reset everything"
+	OutEnv             = "OUT"
+	ColorEnv           = "COLOR"
+	maxLineWidth       = 80
+	bufSize            = 16384
 )
 
-// The q logger singleton
+// The d logger singleton
 var std *logger
 
-// logger writes pretty logs to the $TMPDIR/q file. It takes care of opening and
+type flusher interface {
+	Flush(*bytes.Buffer) error
+}
+
+type fileFlusher struct {
+	path string
+}
+
+func (ff fileFlusher) Flush(buf *bytes.Buffer) error {
+	path := ff.path
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		return fmt.Errorf("failed to open %q: %v", path, err)
+	}
+	defer f.Close()
+
+	_, err = io.Copy(f, buf)
+	buf.Reset()
+	return fmt.Errorf("failed to flush d buffer: %v", err)
+}
+
+type stdOutFlusher struct{}
+
+func (sf stdOutFlusher) Flush(buf *bytes.Buffer) error {
+	fmt.Printf(buf.String())
+	buf.Reset()
+	return nil
+}
+
+// logger writes pretty logs. It takes care of opening and
 // closing the file. It is safe for concurrent use.
 type logger struct {
 	mu       sync.Mutex    // protects all the other fields
 	buf      *bytes.Buffer // collects writes before they're flushed to the log file
 	start    time.Time     // time of first write in the current log group
 	timer    *time.Timer   // when it gets to 0, start a new log group
-	lastFile string        // last file to call q.Q(). determines when to print header
-	lastFunc string        // last function to call q.Q()
+	lastFile string        // last file to call d.D(). determines when to print header
+	lastFunc string        // last function to call d.D()
+	flusher  flusher
 }
 
 // init creates the standard logger.
@@ -52,8 +83,18 @@ func init() {
 	buf := &bytes.Buffer{}
 	buf.Grow(bufSize)
 	std = &logger{
-		buf:   buf,
-		timer: t,
+		buf:     buf,
+		timer:   t,
+		flusher: fileFlusher{},
+	}
+	f := os.Getenv(OutEnv)
+	if f != "" {
+		std.flusher = fileFlusher{f}
+	} else {
+		std.flusher = stdOutFlusher{}
+	}
+	if os.Getenv(ColorEnv) == "NO" {
+		colorizeEnabled = false
 	}
 }
 
@@ -97,16 +138,7 @@ func (l *logger) resetTimer(d time.Duration) (expired bool) {
 
 // flush writes the logger's buffer to disk.
 func (l *logger) flush() error {
-	path := filepath.Join(os.TempDir(), "q")
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
-	if err != nil {
-		return fmt.Errorf("failed to open %q: %v", path, err)
-	}
-	defer f.Close()
-
-	_, err = io.Copy(f, l.buf)
-	l.buf.Reset()
-	return fmt.Errorf("failed to flush q buffer: %v", err)
+	return l.flusher.Flush(l.buf)
 }
 
 // output writes to the log buffer. Each log message is prepended with a
@@ -148,8 +180,8 @@ func (l *logger) output(args ...string) {
 	fmt.Fprint(l.buf, "\n")
 }
 
-// Q pretty-prints the given arguments to the $TMPDIR/q log file.
-func Q(v ...interface{}) {
+// D pretty-prints the given arguments
+func D(v ...interface{}) {
 	std.mu.Lock()
 	defer std.mu.Unlock()
 
@@ -163,15 +195,15 @@ func Q(v ...interface{}) {
 		return
 	}
 
-	// Print a header line if this q.Q() call is in a different file or
-	// function than the previous q.Q() call, or if the 2s timer expired.
+	// Print a header line if this d.D() call is in a different file or
+	// function than the previous d.D() call, or if the 2s timer expired.
 	// A header line looks like this: [14:00:36 main.go main.main:122].
 	header := std.header(funcName, file, line)
 	if header != "" {
 		fmt.Fprint(std.buf, "\n", header, "\n")
 	}
 
-	// q.Q(foo, bar, baz) -> []string{"foo", "bar", "baz"}
+	// d.D(foo, bar, baz) -> []string{"foo", "bar", "baz"}
 	names, err := argNames(file, line)
 	if err != nil {
 		std.output(args...) // no name=value printing

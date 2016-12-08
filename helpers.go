@@ -1,8 +1,4 @@
-// Copyright 2016 Ryan Boehning. All rights reserved.
-// Use of this source code is governed by the MIT
-// license that can be found in the LICENSE file.
-
-package q
+package d
 
 import (
 	"bytes"
@@ -18,6 +14,8 @@ import (
 
 	"github.com/kr/pretty"
 )
+
+var colorizeEnabled = true
 
 // argName returns the source text of the given argument if it's a variable or
 // an expression. If the argument is something else, like a literal, argName
@@ -43,10 +41,10 @@ func argName(arg ast.Expr) string {
 	return name
 }
 
-// argNames finds the q.Q() call at the given filename/line number and
+// argNames finds the d.D() call at the given filename/line number and
 // returns its arguments as a slice of strings. If the argument is a literal,
 // argNames will return an empty string at the index position of that argument.
-// For example, q.Q(ip, port, 5432) would return []string{"ip", "port", ""}.
+// For example, d.D(ip, port, 5432) would return []string{"ip", "port", ""}.
 // argNames returns an error if the source text cannot be parsed.
 func argNames(filename string, line int) ([]string, error) {
 	fset := token.NewFileSet()
@@ -68,7 +66,7 @@ func argNames(filename string, line int) ([]string, error) {
 			return true
 		}
 
-		if !isQCall(call) {
+		if !isDCall(call) {
 			// The node is a function call on correct line, but it's not a Q()
 			// function.
 			return true
@@ -105,6 +103,9 @@ func argWidth(arg string) int {
 // colorize returns the given text encapsulated in ANSI escape codes that
 // give the text color in the terminal.
 func colorize(text string, c color) string {
+	if !colorizeEnabled {
+		return text
+	}
 	return string(c) + text + string(endColor)
 }
 
@@ -130,12 +131,12 @@ func formatArgs(args ...interface{}) []string {
 }
 
 // getCallerInfo returns the name, file, and line number of the function calling
-// q.Q().
+// d.D().
 func getCallerInfo() (funcName, file string, line int, err error) {
-	const callDepth = 2 // user code calls q.Q() which calls std.log().
+	const callDepth = 2 // user code calls d.D() which calls std.log().
 	pc, file, line, ok := runtime.Caller(callDepth)
 	if !ok {
-		return "", "", 0, errors.New("failed to get info about the function calling q.Q")
+		return "", "", 0, errors.New("failed to get info about the function calling d.D")
 	}
 
 	funcName = runtime.FuncForPC(pc).Name()
@@ -158,33 +159,31 @@ func prependArgName(names, values []string) []string {
 	return prepended
 }
 
-// isQCall returns true if the given function call expression is Q() or q.Q().
-func isQCall(n *ast.CallExpr) bool {
-	return isQFunction(n) || isQPackage(n)
+// isDCall returns true if the given function call expression is D() or d.D().
+func isDCall(n *ast.CallExpr) bool {
+	return isDFunction(n) || isDPackage(n)
 }
 
-// isQFunction returns true if the given function call expression is Q().
-func isQFunction(n *ast.CallExpr) bool {
+// isDFunction returns true if the given function call expression is D().
+func isDFunction(n *ast.CallExpr) bool {
 	ident, is := n.Fun.(*ast.Ident)
 	if !is {
 		return false
 	}
-	return ident.Name == "Q"
+	return ident.Name == "D"
 }
 
-// isQPackage returns true if the given function call expression is in the q
-// package. Since Q() is the only exported function from the q package, this is
-// sufficient for determining that we've found Q() in the source text.
-func isQPackage(n *ast.CallExpr) bool {
+// isDPackage returns true if the given function call expression is in the d
+// package. Since D() is the only exported function from the d package, this is
+// sufficient for determining that we've found D() in the source text.
+func isDPackage(n *ast.CallExpr) bool {
 	sel, is := n.Fun.(*ast.SelectorExpr) // SelectorExpr example: a.B()
 	if !is {
 		return false
 	}
-
 	ident, is := sel.X.(*ast.Ident) // sel.X is the part that precedes the .
 	if !is {
 		return false
 	}
-
-	return ident.Name == "q"
+	return ident.Name == "d"
 }

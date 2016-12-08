@@ -1,13 +1,13 @@
 /*
-Package q provides quick and dirty debugging output for tired programmers.
+package d provides quick and dirty debugging output for tired programmers.
 
-q.Q() is a fast way to pretty-print variables. It's easier than typing
+d.D() is a fast way to pretty-print variables. It's easier than typing
 fmt.Printf("%#v", whatever). The output will be colorized and nicely formatted.
-The output goes to $TMPDIR/q, away from the noise of stdout.
+The output goes to stdout or $OUT env var if defined.
 
-q exports a single Q() function. This is how you use it:
-    import "github.com/y0ssar1an/q"
+d exports a single D() function. This is how you use it:
+    import "github.com/soider/d"
     ...
-    q.Q(a, b, c)
+    d.D(a, b, c)
 */
-package q
+package d

@@ -1,32 +1,38 @@
-# q
-[![Build Status](https://travis-ci.org/y0ssar1an/q.svg?branch=develop)](https://travis-ci.org/y0ssar1an/q)
-[![GoDoc](https://godoc.org/github.com/y0ssar1an/q?status.svg)](https://godoc.org/github.com/y0ssar1an/q)
-[![Go Report Card](https://goreportcard.com/badge/github.com/y0ssar1an/q)](https://goreportcard.com/report/github.com/y0ssar1an/q)
+# d
+[![Build Status](https://travis-ci.org/soider/d.svg?branch=develop)](https://travis-ci.org/soider/d)
+[![GoDoc](https://godoc.org/github.com/soider/d?status.svg)](https://godoc.org/github.com/soider/d)
+[![Go Report Card](https://goreportcard.com/badge/github.com/soider/d)](https://goreportcard.com/report/github.com/soider/d)
 
-q is a better way to do print statement debugging.
+d is a better way to do print statement debugging.
 
-Type `q.Q` instead of `fmt.Printf` and your variables will be printed like this:
+Type `d.D` instead of `fmt.Printf` and your variables will be printed like this:
 
-![q output examples](https://i.imgur.com/OFmm7pb.png)
+![d output examples](https://i.imgur.com/OFmm7pb.png)
 
 ## Why is this better than `fmt.Printf`?
 
 * Faster to type
 * Pretty-printed vars and expressions
 * Easier to see inside structs
-* Doesn't go to noisy-ass stdout. It goes to `$TMPDIR/q`.
 * Pretty colors!
+
+d is fork of https://github.com/y0ssar1an/q with some differences:
+* Added glide support
+* Do not include vendor into repository
+* Changed default behaviour - for me is more comfortable to log on stdout or have possibility to change file
+* Settings for removing colors
+
 
 ## Basic Usage
 
 ```go
-import "github.com/y0ssar1an/q"
+import "github.com/soider/d"
 ...
-q.Q(a, b, c)
+d.D(a, b, c)
 
 // Alternatively, use the . import and you can omit the package name.
 // q only exports the Q function.
-import . "github.com/y0ssar1an/q"
+import . "github.com/soider/d"
 ...
 Q(a, b, c)
 ```
@@ -37,21 +43,14 @@ For best results, dedicate a terminal to tailing `$TMPDIR/q` while you work.
 ## Install
 
 ```sh
-go get -u github.com/y0ssar1an/q
-```
-
-Put these aliases in your shell config. Typing `qq` will then start tailing
-`$TMPDIR/q`.
-```sh
-alias qq=". $GOPATH/src/github.com/y0ssar1an/q/q.sh"
-alias rmqq="rm $TMPDIR/q"
+go get -u github.com/soider/d
 ```
 
 ## Editor Integration
 
 #### Sublime Text
 ```
-cp $GOPATH/src/github.com/y0ssar1an/q/qq.sublime-snippet Packages/User/qq.sublime-snippet
+cp $GOPATH/src/github.com/soider/d/dd.sublime-snippet Packages/User/dd.sublime-snippet
 ```
 
 #### Atom
@@ -60,9 +59,9 @@ directly or by selecting the `Atom > Open Your Snippets` menu. You can then add
 this code snippet to the bottom and save the file:
 ```
 '.source.go':
-  'q log':
-    'prefix': 'qq'
-    'body': 'q.Q($1)'
+  'd log':
+    'prefix': 'dd'
+    'body': 'd.D($1)'
 ```
 
 #### VS Code
@@ -70,10 +69,10 @@ In the VS Code menu go to `Preferences` and choose `User Snippets`. When the
 language dropdown menu appears select `GO`. Add the following snippet to the
 array of snippets.
 ```
-"q.Q": {
-	"prefix": "qq",
+"d.D": {
+	"prefix": "dd",
 	"body": [
-		"q.Q($1)"
+		"d.D($1)"
 	],
 	"description": "Quick and dirty debugging output for tired Go programmers"
 }
@@ -94,8 +93,8 @@ PyCon 2013. Watch it! It's funny :)
 
 ## FAQ
 
-### Why `q.Q`?
+### Why `d.D`?
 It's quick to type and unlikely to cause naming collisions.
 
-### Is `q.Q()` safe for concurrent use?
+### Is `d.D()` safe for concurrent use?
 Yes.

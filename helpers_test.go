@@ -1,8 +1,4 @@
-// Copyright 2016 Ryan Boehning. All rights reserved.
-// Use of this source code is governed by the MIT
-// license that can be found in the LICENSE file.
-
-package q
+package d
 
 import (
 	"fmt"
@@ -13,8 +9,8 @@ import (
 )
 
 // TestExtractingArgsFromSourceText verifies that exprToString() and argName()
-// arg able to extract the text of the arguments passed to q.Q(). For example,
-// q.Q(myVar) should return "myVar".
+// arg able to extract the text of the arguments passed to d.D(). For example,
+// d.D(myVar) should return "myVar".
 func TestExtractingArgsFromSourceText(t *testing.T) {
 	testCases := []struct {
 		id   int
@@ -362,12 +358,12 @@ func TestExtractingArgsFromSourceText(t *testing.T) {
 	}
 }
 
-// TestArgNames verifies that argNames() is able to find the q.Q() call in the
-// sample text and extract the argument names. For example, if q.q(a, b, c) is
+// TestArgNames verifies that argNames() is able to find the d.D() call in the
+// sample text and extract the argument names. For example, if d.D(a, b, c) is
 // in the sample text, argNames() should return []string{"a", "b", "c"}.
 func TestArgNames(t *testing.T) {
 	const filename = "testdata/sample1.go"
-	want := []string{"a", "b", "c", "d", "e", "f", "g"}
+	want := []string{"a", "b", "c", "d_", "e", "f", "g"}
 	got, err := argNames(filename, 14)
 	if err != nil {
 		t.Fatalf("argNames: failed to parse %q: %v", filename, err)
@@ -528,8 +524,8 @@ func TestPrependArgName(t *testing.T) {
 	}
 }
 
-// TestIsQCall verifies that isQCall() returns true if the given call expression
-// is q.Q().
+// TestIsQCall verifies that isDCall() returns true if the given call expression
+// is d.D().
 func TestIsQCall(t *testing.T) {
 	testCases := []struct {
 		id   int
@@ -539,7 +535,7 @@ func TestIsQCall(t *testing.T) {
 		{
 			id: 1,
 			expr: &ast.CallExpr{
-				Fun: &ast.Ident{Name: "Q"},
+				Fun: &ast.Ident{Name: "D"},
 			},
 			want: true,
 		},
@@ -554,7 +550,7 @@ func TestIsQCall(t *testing.T) {
 			id: 3,
 			expr: &ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X: &ast.Ident{Name: "q"},
+					X: &ast.Ident{Name: "d"},
 				},
 			},
 			want: true,
@@ -563,7 +559,7 @@ func TestIsQCall(t *testing.T) {
 			id: 4,
 			expr: &ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X: &ast.Ident{Name: "Q"},
+					X: &ast.Ident{Name: "D"},
 				},
 			},
 			want: false,
@@ -580,17 +576,17 @@ func TestIsQCall(t *testing.T) {
 		{
 			id: 6,
 			expr: &ast.CallExpr{
-				Fun: &ast.Ident{Name: "q"},
+				Fun: &ast.Ident{Name: "d"},
 			},
 			want: false,
 		},
 	}
 
 	for _, tc := range testCases {
-		got := isQCall(tc.expr)
+		got := isDCall(tc.expr)
 		if got != tc.want {
 			t.Fatalf(
-				"\nTEST %d\nisQCall(%s)\ngot:  %v\nwant: %v",
+				"\nTEST %d\nisDCall(%s)\ngot:  %v\nwant: %v",
 				tc.id,
 				pretty.Sprint(tc.expr),
 				got,
