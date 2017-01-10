@@ -1,0 +1,3 @@
+package: github.com/soider/d
+import:
+- package: github.com/kr/pretty
